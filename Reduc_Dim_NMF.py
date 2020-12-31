@@ -541,7 +541,7 @@ for n_comp in tqdm(range(1,20,1)):
     
     nmf_scaled_train1a=nmf_6.transform(scaled_train_1a.iloc[:,1:])
     
-    kf = KFold(n_splits=5,shuffle=True)
+    kf = KFold(n_splits=2,shuffle=True)
     
     lr_acc_cv=[]
     i=0
@@ -577,8 +577,127 @@ ax2 = ax1.twinx()
 ax2.set_ylabel(r"Error $\frac{||X-\tilde{X}V||}{||X||}$",color="red")  
 ax2.plot(range(1,20,1),error_rate,label="Reconstruction Error Rate",color="red")
 ax2.tick_params(axis='y')
+plt.title("Accuracy of LR (mean of 2 folds) \n and Reconstruction Error \n (NMF performed and error measured on the whole dataset \n before splitting into train and test datas) ")
 
 fig.tight_layout()
+
+#%% Let us be more rigorous on the decomposition two approaches
+
+
+def Proj_Type(type_proj,nFold,n_compMax):
+    compos=[]
+    error_rate_train=[]
+    error_rate_test=[]
+    lr_result=[]
+    y=scaled_train_1a.iloc[:,0]
+    for n_comp in tqdm(range(1,n_compMax,1)):
+        
+        nmf_6=decomposition.NMF(n_components=n_comp,max_iter=1000,tol=0.001,init="random",solver="cd",random_state=1)
+        
+        kf = KFold(n_splits=nFold,shuffle=True)
+        
+        lr_acc_cv=[]
+        error_rate_train_cv=[]
+        error_rate_test_cv=[]
+        i=0
+        for train_index, test_index in kf.split(scaled_train_1a.iloc[:,1:]):
+            i+=1
+            print("Fold number"+str(i))
+            X_train, X_test = scaled_train_1a.iloc[train_index,1:], scaled_train_1a.iloc[test_index,1:]
+            y_train, y_test = y[train_index], y[test_index]
+            
+            if type_proj=="Own":
+                X_train_nmf=nmf_6.fit_transform(X_train)
+                error=nmf_6.reconstruction_err_/np.linalg.norm(X_train,ord="fro") #reconstruction error measured on the train data nmf
+                error_rate_train_cv.append(error)
+                
+                X_test_nmf=nmf_6.fit_transform(X_test)
+                error=nmf_6.reconstruction_err_/np.linalg.norm(X_test,ord="fro") #reconstruction error measured on the test data nmf
+                error_rate_test_cv.append(error)
+                
+                y_true=y_test
+                
+                lr=LogisticRegression()
+                lr=lr.fit(X_train_nmf,y_train)
+                y_pred=lr.predict(X_test_nmf)
+                lr_acc_l = metrics.accuracy_score(y_pred, y_true)
+                lr_acc_cv.append(lr_acc_l)
+                
+            elif type_proj=="Train":
+                nmf_6.fit(X_train)
+                compo=nmf_6.components_
+                compos.append(compo)
+                X_train_nmf=nmf_6.transform(X_train)
+                error=np.linalg.norm(X_train-np.dot(X_train_nmf,compo),ord="fro")/np.linalg.norm(X_train,ord="fro") 
+                #error=nmf_6.reconstruction_err_/np.linalg.norm(X_train,ord="fro") #reconstruction error measured on the train data nmf
+                error_rate_train_cv.append(error)
+    
+                X_test_nmf=nmf_6.transform(X_test)
+                error=np.linalg.norm(X_test-np.dot(X_test_nmf,compo),ord="fro")/np.linalg.norm(X_test,ord="fro") #reconstruction error measured on the test data nmf
+                #must be caculated "manually" because nmf_6 is not fitted on X_test so reconstruction_err_ is the one of X_train NMF
+                error_rate_test_cv.append(error)
+              
+                y_true=y_test
+                
+                lr=LogisticRegression()
+                lr=lr.fit(X_train_nmf,y_train)
+                y_pred=lr.predict(X_test_nmf)
+                lr_acc_l = metrics.accuracy_score(y_pred, y_true)
+                lr_acc_cv.append(lr_acc_l)           
+        
+        error_rate_train.append(np.mean(error_rate_train_cv))
+        error_rate_test.append(np.mean(error_rate_test_cv))
+        
+        lr_result.append(np.mean(lr_acc_cv))
+        
+    return error_rate_train, error_rate_test, lr_result, compos
+
+
+#Compare the results : first each matrix (train and test) get their own NMF with a great reconstruction
+error_rate_train_own, error_rate_test_own, lr_result_own, compos = Proj_Type(type_proj="Own",nFold=2,n_compMax=20)
+
+
+plt.style.use('default')
+fig, ax1 = plt.subplots()
+
+ax1.set_xlabel('Components')
+ax1.set_ylabel('Accuracy of Logistic Regression',color="blue")
+ax1.plot(range(1,20,1),lr_result_own,label="Logistic Regression Accuracy",color="blue")
+ax1.tick_params(axis='y')
+
+ax2 = ax1.twinx()  
+
+ax2.set_ylabel(r"Error $\frac{||X-\tilde{X}V||}{||X||}$",color="red")  
+ax2.plot(range(1,20,1),error_rate_train_own,color="red",label="Train Reconstruction")
+ax2.plot(range(1,20,1),error_rate_test_own,color="red",linestyle=':',label="Test Reconstruction")
+ax2.legend()
+ax2.tick_params(axis='y')
+plt.title("Accuracy of LR (mean of 2 folds) \n and Reconstruction Error \n (mean of 2 folds for train and test datas with their own NMF) ")
+fig.tight_layout()
+
+
+#Now the test datas NMF is performed by using the components fitted on the train data
+error_rate_train_train, error_rate_test_train, lr_result_train, compos = Proj_Type(type_proj="Train",nFold=2,n_compMax=20)
+
+plt.style.use('default')
+fig, ax1 = plt.subplots()
+
+ax1.set_xlabel('Components')
+ax1.set_ylabel('Accuracy of Logistic Regression',color="blue")
+ax1.plot(range(1,20,1),lr_result_train,label="Logistic Regression Accuracy",color="blue")
+ax1.tick_params(axis='y')
+
+ax2 = ax1.twinx()  
+
+ax2.set_ylabel(r"Error $\frac{||X-\tilde{X}V||}{||X||}$",color="red")  
+ax2.plot(range(1,20,1),error_rate_train_train,color="red",label="Train Reconstruction")
+ax2.plot(range(1,20,1),error_rate_test_train,color="red",linestyle=':',label="Test Reconstruction")
+ax2.legend(loc="upper left")
+ax2.tick_params(axis='y')
+plt.title("Accuracy of LR (mean of 2 folds) \n and Reconstruction Error \n (mean of 2 folds for train and test datas with \n projection on the train datas NMF Components) ")
+fig.tight_layout()
+
+
 
 
 #%% Export : Go for 8 dimensions
@@ -587,3 +706,10 @@ nmf_final=decomposition.NMF(n_components=8,max_iter=1000,tol=0.001,init="random"
 nmf_scaled_train1a=nmf_final.fit_transform(scaled_train_1a.iloc[:,1:])
 nmf_scaled_train1a=pd.DataFrame(nmf_scaled_train1a)
 nmf_scaled_train1a["label"]=scaled_train_1a.iloc[:,0]
+nmf_scaled_train1a=nmf_scaled_train1a[['label',0, 1, 2, 3, 4, 5, 6, 7]]
+
+nmf_scaled_test1a=nmf_final.transform(scaled_test_1a)
+nmf_scaled_test1a=pd.DataFrame(nmf_scaled_test1a)
+
+nmf_scaled_train1a.to_csv(r"C:\Users\rapha\Desktop\GrandeDimProjet\nmf_scaled_train_1a.csv",index=False)
+nmf_scaled_test1a.to_csv(r"C:\Users\rapha\Desktop\GrandeDimProjet\nmf_scaled_test_1a.csv",index=False)
