@@ -1,4 +1,4 @@
 # ProjetGrandeDim
 Projet Analyse de données en grande dimension
 
-[embed]https://github.com/RaphaelLorenzo/ProjetGrandeDim/blob/main/Diag_Plan_v1.pdf[/embed]
+![alt text](https://github.com/RaphaelLorenzo/ProjetGrandeDim/blob/main/Diag_Plan_v1.pdf?raw=true)
