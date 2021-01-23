@@ -21,6 +21,6 @@ scaled_test_1a=pd.DataFrame(scaler.fit_transform(test_1a))
 t=pd.DataFrame(scaler.fit_transform(train_1a.iloc[:,1:]))
 scaled_train_1a=pd.DataFrame(train_1a["0"]).join(t)
 
-scaled_test_1a.to_csv(r"C:\Users\rapha\Desktop\GrandeDimProjet\EEG\scaled_test_1a.csv",index=False)
-scaled_train_1a.to_csv(r"C:\Users\rapha\Desktop\GrandeDimProjet\EEG\scaled_train_1a.csv",index=False)
+scaled_test_1a.to_csv(r"C:\Users\rapha\Desktop\GrandeDimProjet\scaled_test_1a.csv",index=False)
+scaled_train_1a.to_csv(r"C:\Users\rapha\Desktop\GrandeDimProjet\scaled_train_1a.csv",index=False)
 

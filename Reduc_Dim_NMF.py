@@ -28,8 +28,13 @@ from sklearn.linear_model import LogisticRegression
 from  sklearn import metrics 
 plt.style.use('seaborn-darkgrid')
 
-scaled_test_1a=pd.read_csv(r"C:\Users\rapha\Desktop\GrandeDimProjet\EEG\scaled_test_1a.csv")
-scaled_train_1a=pd.read_csv(r"C:\Users\rapha\Desktop\GrandeDimProjet\EEG\scaled_train_1a.csv")
+
+project_path=r"C:\\Users\\rapha\\Desktop\\TIDE S1\\ProjetGrandeDIm_Local\\"
+data_path=r"C:\\Users\\rapha\\Desktop\\TIDE S1\\ProjetGrandeDIm_Local\\"
+
+
+scaled_test_1a=pd.read_csv(project_path+r"scaled_test_1a.csv")
+scaled_train_1a=pd.read_csv(project_path+r"scaled_train_1a.csv")
 
 #Non negative matrix for NMF, methods nneg with min
 scaled_train_1a.iloc[:,1:]=scaled_train_1a.iloc[:,1:]+abs(scaled_train_1a.iloc[:,1:].min().min())
@@ -368,7 +373,7 @@ plt.ylabel(r"Error $\frac{||X-\tilde{X}V||}{||X||}$")
 plt.title("Error rate for NMF with Froebenius constraint (6 components)")
 
 
-#Use the CV grid to gest the best couple of parameters to predict, with 6 components
+#Use a manual CV grid to gest the best couple of parameters to predict, with 6 components
 
 
 l1_ratio_range =np.arange(0,1.2, 0.2)
@@ -520,9 +525,9 @@ ax.set_title("Number of iterations")
 
 #Unfortunately a lot of iterations don't reach their optimum because of a lack of iterations, but the nmf is performed quite fast with low alpha (whatever the L1 ratio is)
 
-#Let's just try our "best performance" for lr prediction while allowing a high number of iterations
+#Adding any sort of regularization does not actually improve ou results
 
-#%% Choosing the number of components for a prediction : nmf_6
+#%% Choosing the number of components for a prediction aim : nmf_6
 
 #As seen above the influence of regularization parameters, and the sparsity of the matrix (given it has a relatively small number of components anyway) does not matter in the quality of the Logistic Regression prediction
 #It is also making the solving process harder (when alpha is high)
@@ -581,7 +586,7 @@ plt.title("Accuracy of LR (mean of 2 folds) \n and Reconstruction Error \n (NMF 
 
 fig.tight_layout()
 
-#%% Let us be more rigorous on the decomposition two approaches
+#%% Let us be more rigorous on the decomposition approaches
 
 
 def Proj_Type(type_proj,nFold,n_compMax):
@@ -711,5 +716,5 @@ nmf_scaled_train1a=nmf_scaled_train1a[['label',0, 1, 2, 3, 4, 5, 6, 7]]
 nmf_scaled_test1a=nmf_final.transform(scaled_test_1a)
 nmf_scaled_test1a=pd.DataFrame(nmf_scaled_test1a)
 
-nmf_scaled_train1a.to_csv(r"C:\Users\rapha\Desktop\GrandeDimProjet\nmf_scaled_train_1a.csv",index=False)
-nmf_scaled_test1a.to_csv(r"C:\Users\rapha\Desktop\GrandeDimProjet\nmf_scaled_test_1a.csv",index=False)
+nmf_scaled_train1a.to_csv(data_path+r"nmf_scaled_train_1a.csv",index=False)
+nmf_scaled_test1a.to_csv(data_path+r"nmf_scaled_test_1a.csv",index=False)

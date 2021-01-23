@@ -5,6 +5,10 @@ Created on Thu Jan 14 09:53:44 2021
 @author: rapha
 """
 
+project_path=r"C:\\Users\\rapha\\Desktop\\TIDE S1\\ProjetGrandeDIm_Local\\"
+results_path=r"C:\\Users\\rapha\\Desktop\\TIDE S1\\ProjetGrandeDIm_Local\\results_LR_LASSO\\"
+data_path=r"C:\\Users\\rapha\\Desktop\\TIDE S1\\ProjetGrandeDIm_Local\\"
+
 import pandas as pd
 from sklearn.linear_model import Lasso, LassoCV, lasso_path, lars_path,LassoLarsCV, LassoLars, LogisticRegression,LogisticRegressionCV
 from sklearn.preprocessing import StandardScaler
@@ -20,23 +24,29 @@ from sklearn.model_selection import GridSearchCV
 import time
 from stability_selection import StabilitySelection, plot_stability_path
 #import sklearn.externals.joblib
+from group_lasso import LogisticGroupLasso
+from sklearn.cluster import SpectralClustering
+from sklearn.neighbors import NearestNeighbors,radius_neighbors_graph
 
 #9 dimensions
-acp_x_train1a=pd.read_csv(r"C:\Users\rapha\Desktop\ProjetGrandeDIm_Local\acp_x_train1a.csv")
-acp_x_test1a=pd.read_csv(r"C:\Users\rapha\Desktop\ProjetGrandeDIm_Local\acp_x_test1a.csv")
+acp_x_train1a=pd.read_csv(data_path+r"acp_x_train1a.csv")
+acp_x_test1a=pd.read_csv(data_path+r"acp_x_test1a.csv")
 
 #8 dimensions
-nmf_x_train1a=pd.read_csv(r"C:\Users\rapha\Desktop\ProjetGrandeDIm_Local\nmf_x_train1a.csv")
-nmf_x_test1a=pd.read_csv(r"C:\Users\rapha\Desktop\ProjetGrandeDIm_Local\nmf_x_test1a.csv")
+nmf_x_train1a=pd.read_csv(data_path+r"nmf_x_train1a.csv")
+nmf_x_test1a=pd.read_csv(data_path+r"nmf_x_test1a.csv")
 
 #5376 dimensions
-x_train1a=pd.read_csv(r"C:\Users\rapha\Desktop\ProjetGrandeDIm_Local\x_train1a.csv")
-x_test1a=pd.read_csv(r"C:\Users\rapha\Desktop\ProjetGrandeDIm_Local\x_test1a.csv")
+x_train1a=pd.read_csv(data_path+r"x_train1a.csv")
+x_test1a=pd.read_csv(data_path+r"x_test1a.csv")
 
 #y
-y_train1a=pd.read_csv(r"C:\Users\rapha\Desktop\ProjetGrandeDIm_Local\y_train1a.csv")
-y_test1a=pd.read_csv(r"C:\Users\rapha\Desktop\ProjetGrandeDIm_Local\y_test1a.csv")
+y_train1a=pd.read_csv(data_path+r"y_train1a.csv")
+y_test1a=pd.read_csv(data_path+r"y_test1a.csv")
 
+#Results DataFrame
+results_pred=pd.read_csv(project_path+r"Models_Test_Results.csv")
+results_pred.columns
 
 #%% LASSO path
 
@@ -314,7 +324,7 @@ x=np.array(x_train1a)
 y=np.array(y_train1a)[:,0]
 
 selector = StabilitySelection(n_jobs=-1,base_estimator=lr_lasso,lambda_name='C', lambda_grid=np.linspace(0.01, 1, 100), bootstrap_func='subsample',verbose=True,threshold=0.2,sample_fraction=0.9,n_bootstrap_iterations=100,random_state=1)
-#threshold =0.9
+#threshold =0.2
 selector.fit(x, y) #long to perform (100 lambdas * 100 bootstrap iterations !)
 
 
@@ -332,13 +342,15 @@ for ind, c in zip(selected_variables[listcoef], colorStab):
     ax = plt.plot((np.linspace(0.01, 1, 100)), proba[ind], c=c, label= ind)
 plt.ylabel('Probas')
 plt.xlabel('C')
-plt.title('Stability selection LR with LASSO Penalty (only some random features are shown)')
+plt.title('Stability selection on LR with LASSO Penalty (only some random features are shown) \n ('+str(5376-len(selected_variables))+' features with less than 20% selection rate are discarded)')
 plt.legend()
 
 highstab=(proba[:,50:]>0.8).all(axis=1) #always over 80% selection for C>0.5 (lower constraint)
 #highstab=((proba>0.6).sum(axis=1)>40) #more than 60% selection for more than 40 different C
 stable_indices = [i for i, x in enumerate(highstab) if x == True]
 stable_indices
+#to avoid the long stability selection (a few minutes)
+#stable_indices=[11, 12, 13, 50, 242, 347, 901, 1432, 1433, 2207, 4348, 4349]
 len(stable_indices) #only 12 stable features !
 
 plt.figure(4, figsize=(10, 8))
@@ -374,7 +386,7 @@ for ind, c in zip(selected_variables, colorStab):
 plt.ylabel('Probas')
 plt.xlabel('C')
 #The higher the C the lower the penalty strength
-plt.title('Stability selection : LR with LASSO Penalty, on NMF datas')
+plt.title('Stability selection : LR with LASSO Penalty, on NMF datas \n No features are discarded')
 plt.legend() #every variables tends to be selected
 
 selected_variables
@@ -403,7 +415,7 @@ for ind, c in zip(selected_variables, colorStab):
 plt.ylabel('Probas')
 plt.xlabel('C')
 #The higher the C the lower the penalty strength
-plt.title('Stability selection')
+plt.title('Stability selection : LR with LASSO Penalty, on PCA datas \n All features are displayed on the graph, features 3 and 8 are then discarded')
 plt.legend(loc="upper left")
 
 (proba[:,75:]>0.99).all(axis=1)
@@ -441,6 +453,7 @@ accuracy_score(y_pred,y_true)
 #Accuracy 89.552%
 
 pred_results["Reduced_Full_NoP"]=y_pred
+results_pred["Logistic_ReducedFull_NoP"]=y_pred
 pred_results["Acc_Reduced_Full_NoP"]=(pred_results["Reduced_Full_NoP"]==pred_results["label"])
 cross_accuracy_stats=pd.crosstab(pred_results["label"],pred_results["Acc_Reduced_Full_NoP"])
 cross_accuracy_stats["accuracy"]=cross_accuracy_stats[True]/(cross_accuracy_stats[True]+cross_accuracy_stats[False]) 
@@ -467,6 +480,7 @@ accuracy_score(y_pred,y_true)
 #Accuracy 82.09%
 
 pred_results["NMF_NoP"]=y_pred
+results_pred["Logistic_NMF_NoP"]=y_pred
 pred_results["Acc_NMF_NoP"]=(pred_results["NMF_NoP"]==pred_results["label"])
 cross_accuracy_stats=pd.crosstab(pred_results["label"],pred_results["Acc_NMF_NoP"])
 cross_accuracy_stats["accuracy"]=cross_accuracy_stats[True]/(cross_accuracy_stats[True]+cross_accuracy_stats[False]) 
@@ -496,6 +510,7 @@ accuracy_score(y_pred,y_true)
 #prediction time 0.005s
 
 pred_results["ACP_Reduced_NoP"]=y_pred
+results_pred["Logistic_ReducedACP_NoP"]=y_pred
 pred_results["Acc_ACP_Reduced_NoP"]=(pred_results["ACP_Reduced_NoP"]==pred_results["label"])
 cross_accuracy_stats=pd.crosstab(pred_results["label"],pred_results["Acc_ACP_Reduced_NoP"])
 cross_accuracy_stats["accuracy"]=cross_accuracy_stats[True]/(cross_accuracy_stats[True]+cross_accuracy_stats[False]) 
@@ -539,6 +554,7 @@ accuracy_score(y_pred,y_true)
 #Accuracy 85.07%
 #prediction time 0.004s
 pred_results["ACP_L1P"]=y_pred
+results_pred["Logistic_ACP_L1P"]=y_pred
 pred_results["Acc_ACP_L1P"]=(pred_results["ACP_L1P"]==pred_results["label"])
 cross_accuracy_stats=pd.crosstab(pred_results["label"],pred_results["Acc_ACP_L1P"])
 cross_accuracy_stats["accuracy"]=cross_accuracy_stats[True]/(cross_accuracy_stats[True]+cross_accuracy_stats[False]) 
@@ -572,6 +588,7 @@ accuracy_score(y_pred,y_true)
 #prediction time 0.004s
 
 pred_results["NMF_L1P"]=y_pred
+results_pred["Logistic_NMF_L1P"]=y_pred
 pred_results["Acc_NMF_L1P"]=(pred_results["NMF_L1P"]==pred_results["label"])
 cross_accuracy_stats=pd.crosstab(pred_results["label"],pred_results["Acc_NMF_L1P"])
 cross_accuracy_stats["accuracy"]=cross_accuracy_stats[True]/(cross_accuracy_stats[True]+cross_accuracy_stats[False]) 
@@ -608,11 +625,13 @@ accuracy_score(y_pred,y_true)
 #prediction time 0.04s
 
 pred_results["Full_L1P"]=y_pred
+results_pred["Logistic_Full_L1P"]=y_pred
 pred_results["Acc_Full_L1P"]=(pred_results["Full_L1P"]==pred_results["label"])
 cross_accuracy_stats=pd.crosstab(pred_results["label"],pred_results["Acc_Full_L1P"])
 cross_accuracy_stats["accuracy"]=cross_accuracy_stats[True]/(cross_accuracy_stats[True]+cross_accuracy_stats[False]) 
 cross_accuracy_stats
 #Accuracy is not equilibrate, classify more in the 0 class
+
 
 #%% Ridge penalty
 ######### ACP #########
@@ -642,12 +661,13 @@ accuracy_score(y_pred,y_true)
 #prediction time 0.004s
 
 pred_results["ACP_L2P"]=y_pred
+results_pred["Logistic_ACP_L2P"]=y_pred
+
 pred_results["Acc_ACP_L2P"]=(pred_results["ACP_L2P"]==pred_results["label"])
 cross_accuracy_stats=pd.crosstab(pred_results["label"],pred_results["Acc_ACP_L2P"])
 cross_accuracy_stats["accuracy"]=cross_accuracy_stats[True]/(cross_accuracy_stats[True]+cross_accuracy_stats[False]) 
 cross_accuracy_stats
 #Equilibrate accuracy
-
 
 
 ######### NMF #########
@@ -672,6 +692,7 @@ accuracy_score(y_pred,y_true)
 #prediction time 0.003s
 
 pred_results["NMF_L2P"]=y_pred
+results_pred["Logistic_NMF_L2P"]=y_pred
 pred_results["Acc_NMF_L2P"]=(pred_results["NMF_L2P"]==pred_results["label"])
 cross_accuracy_stats=pd.crosstab(pred_results["label"],pred_results["Acc_NMF_L2P"])
 cross_accuracy_stats["accuracy"]=cross_accuracy_stats[True]/(cross_accuracy_stats[True]+cross_accuracy_stats[False]) 
@@ -685,7 +706,7 @@ lr_l2=LogisticRegressionCV(Cs=100,penalty="l2",solver="lbfgs",n_jobs=-1,verbose=
 x=np.array(x_train1a)
 y=np.array(y_train1a)[:,0]
 
-lr_l2.fit(x,y) #longer to fit !
+lr_l2.fit(x,y) #much longer to fit !
 lr_l2.C_ #best C
 lr_l2.coef_
 (lr_l2.coef_!=0).sum() #All non 0 coefficients ! Not sparse at all
@@ -703,6 +724,7 @@ accuracy_score(y_pred,y_true)
 #prediction time 0.03s
 
 pred_results["Full_L2P"]=y_pred
+results_pred["Logistic_Full_L2P"]=y_pred
 pred_results["Acc_Full_L2P"]=(pred_results["Full_L2P"]==pred_results["label"])
 cross_accuracy_stats=pd.crosstab(pred_results["label"],pred_results["Acc_Full_L2P"])
 cross_accuracy_stats["accuracy"]=cross_accuracy_stats[True]/(cross_accuracy_stats[True]+cross_accuracy_stats[False]) 
@@ -722,7 +744,7 @@ lr_elasticnet.fit(x,y)
 lr_elasticnet.coef_ #One coefficient at 0 (feature 8, feature 3 is kept non 0)
 
 lr_elasticnet.C_ #best C, very low, high constraint
-lr_elasticnet.l1_ratio_ #low but non 0 L1 ratio, mostly a L2 penalty, but a bit of LASSO (that explains the coef at 0 for feature 8)
+lr_elasticnet.l1_ratio_ #low (0.1) but non 0 L1 ratio, mostly a L2 penalty, but a bit of LASSO (that explains the coef at 0 for feature 8)
 
 y_true=y_test1a
 
@@ -753,6 +775,7 @@ accuracy_score(y_pred,y_true)
 
 
 pred_results["ACP_ElasticP"]=y_pred
+results_pred["Logistic_ACP_ElasticP"]=y_pred
 pred_results["Acc_ACP_ElasticP"]=(pred_results["ACP_ElasticP"]==pred_results["label"])
 cross_accuracy_stats=pd.crosstab(pred_results["label"],pred_results["Acc_ACP_ElasticP"])
 cross_accuracy_stats["accuracy"]=cross_accuracy_stats[True]/(cross_accuracy_stats[True]+cross_accuracy_stats[False]) 
@@ -784,6 +807,7 @@ accuracy_score(y_pred,y_true)
 #prediction time 0.003s 
 
 pred_results["NMF_ElasticP"]=y_pred
+results_pred["Logistic_NMF_ElasticP"]=y_pred
 pred_results["Acc_NMF_ElasticP"]=(pred_results["NMF_ElasticP"]==pred_results["label"])
 cross_accuracy_stats=pd.crosstab(pred_results["label"],pred_results["Acc_NMF_ElasticP"])
 cross_accuracy_stats["accuracy"]=cross_accuracy_stats[True]/(cross_accuracy_stats[True]+cross_accuracy_stats[False]) 
@@ -798,7 +822,11 @@ lr_elasticnet=LogisticRegressionCV(Cs=20,penalty="elasticnet",l1_ratios=[0.2*i f
 x=np.array(x_train1a)
 y=np.array(y_train1a)[:,0]
 
-lr_elasticnet.fit(x,y) #very long to fit
+start_fit=time.time()
+lr_elasticnet.fit(x,y) #very long to fit (12 minutes)
+end_fit=time.time()
+
+end_fit-start_fit
 
 lr_elasticnet.coef_ 
 (lr_elasticnet.coef_!=0).sum() #all coefficients not 0
@@ -816,13 +844,231 @@ end-start
 accuracy_score(y_pred,y_true)
 
 pred_results["Full_ElasticP"]=y_pred
+results_pred["Logistic_Full_ElasticP"]=y_pred
 pred_results["Acc_Full_ElasticP"]=(pred_results["Full_ElasticP"]==pred_results["label"])
 cross_accuracy_stats=pd.crosstab(pred_results["label"],pred_results["Acc_Full_ElasticP"])
 cross_accuracy_stats["accuracy"]=cross_accuracy_stats[True]/(cross_accuracy_stats[True]+cross_accuracy_stats[False]) 
 cross_accuracy_stats
 #Quite unequilibrate accuracy classify more in the 0 class
 
-#%%Summary of accurcies
+#%% Group LASSO Logistic Regression on Full Dataset
+#the LogisticGroupLasso function from Group-Lasso is not as well developped as sklearn functions (with built in CV, paths...) but uses the same kind of API
+
+########Time Groups########
+#896 groups of 6 features, captured at the same time
+groups=[0]*x_train1a.shape[1]
+g=1
+for i in range(896):
+    for cha in range(6):
+        groups[896*cha+i]=g
+    g=g+1
+
+gl = LogisticGroupLasso(
+    groups=groups,
+    group_reg=0.05,
+    l1_reg=0,
+    supress_warning=True
+)
+
+gl.fit(x_train1a, y_train1a)
+y_pred=gl.predict(x_test1a)
+accuracy_score(y_pred,y_test1a)
+
+gl.chosen_groups_
+len(gl.chosen_groups_)
+
+#No L1 regularization, only group regularization (ie there is no coefficient wise selection)
+#Manually without a CV with GridSearchCV, to see the path
+#Find the best regularization
+reg_path=np.arange(0.01,0.1,0.01)
+accuracy_path=[]
+group_path=[]
+coef_path=[]
+
+for g_reg in reg_path:
+    print(g_reg)
+    gl = LogisticGroupLasso(groups=groups,group_reg=g_reg,l1_reg=0,supress_warning=True)
+    gl.fit(x_train1a, y_train1a) 
+    y_pred=gl.predict(x_test1a)
+    acc=accuracy_score(y_pred,y_test1a)
+    accuracy_path.append(acc)
+    group_path.append(gl.chosen_groups_)
+    coef_path.append(gl.sparsity_mask_)
+    
+fig, ax1 = plt.subplots()
+color = 'tab:red'
+ax1.set_xlabel('-log(lambda)')
+ax1.set_ylabel('Accuracy', color=color)
+ax1.plot(-np.log10(reg_path), accuracy_path, color=color)
+ax1.tick_params(axis='y', labelcolor=color)
+ax2 = ax1.twinx() 
+color = 'tab:blue'
+ax2.set_ylabel('Number of selected groups', color=color)  
+ax2.plot(-np.log10(reg_path),[len(x) for x in group_path],color=color)
+ax2.tick_params(axis='y', labelcolor=color)
+
+#lower lambda and low group selection yields better results
+gl = LogisticGroupLasso(groups=groups,group_reg=0.01,l1_reg=0,supress_warning=True)
+gl.fit(x_train1a, y_train1a) 
+y_pred=gl.predict(x_test1a)
+results_pred["Logistic_Full_TimeGroupP"]=y_pred
+pred_results["Full_TimeGroupP"]=y_pred
+
+
+
+
+########Channel Groups########
+groups=[0]*x_train1a.shape[1]
+g=1
+for cha in range(6):
+    groups[896*cha:896*(cha+1)]=[g]*896
+    g=g+1
+
+#Only 6 groups !
+
+gl = LogisticGroupLasso(
+    groups=groups,
+    group_reg=0.05,
+    l1_reg=0,
+    supress_warning=True
+)
+
+gl.fit(x_train1a, y_train1a)
+y_pred=gl.predict(x_test1a)
+accuracy_score(y_pred,y_test1a)
+
+gl.chosen_groups_
+len(gl.chosen_groups_)
+
+#Find the best regulatization
+reg_path=np.arange(0.01,0.1,0.01)
+accuracy_path=[]
+group_path=[]
+coef_path=[]
+
+for g_reg in reg_path:
+    print(g_reg)
+    gl = LogisticGroupLasso(groups=groups,group_reg=g_reg,l1_reg=0,supress_warning=True)
+    gl.fit(x_train1a, y_train1a) 
+    y_pred=gl.predict(x_test1a)
+    acc=accuracy_score(y_pred,y_test1a)
+    accuracy_path.append(acc)
+    group_path.append(gl.chosen_groups_)
+    coef_path.append(gl.sparsity_mask_)
+    
+fig, ax1 = plt.subplots()
+color = 'tab:red'
+ax1.set_xlabel('-log(lambda)')
+ax1.set_ylabel('Accuracy', color=color)
+ax1.plot(-np.log10(reg_path), accuracy_path, color=color)
+ax1.tick_params(axis='y', labelcolor=color)
+ax2 = ax1.twinx() 
+color = 'tab:blue'
+ax2.set_ylabel('Number of selected groups', color=color)  
+ax2.plot(-np.log10(reg_path),[len(x) for x in group_path],color=color)
+ax2.tick_params(axis='y', labelcolor=color)
+#here again almost all groups are selected
+
+gl = LogisticGroupLasso(groups=groups,group_reg=0.01,l1_reg=0,supress_warning=True)
+gl.fit(x_train1a, y_train1a) 
+gl.chosen_groups_ #4th channel is not chosen
+y_pred=gl.predict(x_test1a)
+results_pred["Logistic_Full_ChannelGroupP"]=y_pred
+pred_results["Full_ChannelGroupP"]=y_pred
+
+
+########Finding groups by Spectral Clustering on variables########
+#We dont know a priori groups and we will try to find them by Spectral Clustering, the skleanr methods is made to create clusters on individuals
+#We will thus be using a precomputed affinity matrix
+#We will simply be using the absolute correlation matrix then a EpsilonNeighors graph or kNN graph
+correlations=abs(x_train1a.corr())
+
+epsneighbors=radius_neighbors_graph(correlations,radius=1) #default, euclidian norm...
+epsneighbors=epsneighbors.A
+#keeping radius 1 because give a quite sparse matrix
+
+sc=SpectralClustering(n_clusters=10,affinity='precomputed')
+labels=sc.fit_predict(epsneighbors)
+
+#finding the best number of clusters
+accuracies=[]
+
+n_clusters_list=[6,12,24,50,100,896,1000]
+for n_cluster in n_clusters_list:
+    print(n_cluster)
+    sc=SpectralClustering(n_clusters=n_cluster,affinity='precomputed')
+    labels=sc.fit_predict(epsneighbors)+1 #no group 0
+    
+    gl = LogisticGroupLasso(groups=labels,group_reg=0.01,l1_reg=0,supress_warning=True)
+    gl.fit(x_train1a, y_train1a) 
+    y_pred=gl.predict(x_test1a)   
+    acc=accuracy_score(y_pred,y_test1a)
+    accuracies.append(acc)    
+
+#Considering what we've seen before we keep a low regulatization parameter
+
+
+#Using nearest neighborgs
+nneigh=NearestNeighbors(n_neighbors=5) #keeping default 5 yields a quite sparse matrix
+nneigh.fit(correlations)
+neigh_graph=nneigh.kneighbors_graph(correlations).A
+
+accuracies_k=[]
+
+n_clusters_list=[6,12,24,50,100,896,1000]
+for n_cluster in n_clusters_list:
+    print(n_cluster)
+    sc=SpectralClustering(n_clusters=n_cluster,affinity='precomputed',n_jobs=-1)
+    labels=sc.fit_predict(neigh_graph)+1 #no group 0
+    
+    gl = LogisticGroupLasso(groups=labels,group_reg=0.01,l1_reg=0,supress_warning=True)
+    gl.fit(x_train1a, y_train1a) 
+    y_pred=gl.predict(x_test1a)   
+    acc=accuracy_score(y_pred,y_test1a)
+    accuracies_k.append(acc)    
+    
+plt.figure()
+plt.plot(np.log10(n_clusters_list),accuracies_k,label="k=5, NN Graph")
+plt.plot(np.log10(n_clusters_list),accuracies,label="Epsilon=1, neighborhood graph")
+plt.xticks(np.log10([6,12,24,50,100,896,1000]))
+plt.xlabel("log(n_clusters)")
+plt.ylabel("Accuracy of the Group Lasso with lambda=0.01")
+plt.legend()
+
+#We will be selecting 24 clusters with the kNN with k=5 method and perform the Logistic Regression with Group Lasso
+sc=SpectralClustering(n_clusters=24,affinity='precomputed',n_jobs=-1)
+labels=sc.fit_predict(epsneighbors)+1 #no group 0
+
+gl = LogisticGroupLasso(groups=labels,group_reg=0.01,l1_reg=0,supress_warning=True)
+gl.fit(x_train1a, y_train1a) 
+gl.chosen_groups_ #{1, 2, 3, 4, 8, 10, 11, 12, 15, 16, 18, 19, 21, 22, 24}
+y_pred=gl.predict(x_test1a)
+results_pred["Logistic_Full_SCGroupP"]=y_pred
+pred_results["Full_SCGroupP"]=y_pred
+
+
+#%% Prediction results
+pred_results.to_csv(results_path+r"pred_results_test.csv")
+
+plt.figure()
+plt.scatter(acp_x_test1a["Dim1"],acp_x_test1a["Dim2"],c=y_test1a["0"],cmap="coolwarm",s=4)
+plt.xlabel("Dim1 (PCA)")
+plt.ylabel("Dim2 (PCA)")
+plt.title("Labels")
+
+names_plot=['label','Reduced_Full_NoP','NMF_NoP', 'ACP_Reduced_NoP','ACP_L1P', 'NMF_L1P', 'Full_L1P','ACP_L2P', 'NMF_L2P','Full_L2P', 'ACP_ElasticP','Full_ElasticP', 'NMF_ElasticP',"Full_TimeGroupP","Full_ChannelGroupP","Full_SCGroupP"]
+
+for n in names_plot:
+    plt.figure()
+    plt.scatter(acp_x_test1a["Dim1"],acp_x_test1a["Dim2"],c=pred_results[n],cmap="coolwarm",s=10)
+    plt.xlabel("Dim1 (PCA)")
+    plt.ylabel("Dim2 (PCA)")
+    plt.title(n)
+
+#%%
+results_pred.to_csv(project_path+r"Models_Test_Results.csv",index=False)
+
+#%%Summary of accuracies
 
 pred_results.columns.to_list()
 names=['Acc_Reduced_Full_NoP','Acc_NMF_NoP', 'Acc_ACP_Reduced_NoP','Acc_ACP_L1P', 'Acc_NMF_L1P', 'Acc_Full_L1P','Acc_ACP_L2P', 'Acc_NMF_L2P','Acc_Full_L2P', 'Acc_ACP_ElasticP','Acc_Full_ElasticP', 'Acc_NMF_ElasticP']
@@ -830,4 +1076,4 @@ values=[pred_results[n].sum()/67 for n in names]
 
 summary_acc=pd.DataFrame(data=names)
 summary_acc["values"]=values
-summary_acc.to_csv(r"C:\Users\rapha\Desktop\ProjetGrandeDIm_Local\summary_accuracy_LR.csv",index=False)
+summary_acc.to_csv(results_path+r"summary_accuracy_LR.csv",index=False)
