@@ -28,13 +28,8 @@ from sklearn.linear_model import LogisticRegression
 from  sklearn import metrics 
 plt.style.use('seaborn-darkgrid')
 
-
-project_path=r"C:\\Users\\rapha\\Desktop\\TIDE S1\\ProjetGrandeDIm_Local\\"
-data_path=r"C:\\Users\\rapha\\Desktop\\TIDE S1\\ProjetGrandeDIm_Local\\"
-
-
-scaled_test_1a=pd.read_csv(project_path+r"scaled_test_1a.csv")
-scaled_train_1a=pd.read_csv(project_path+r"scaled_train_1a.csv")
+scaled_test_1a=pd.read_csv(r"C:\Users\rapha\Desktop\GrandeDimProjet\scaled_test_1a.csv")
+scaled_train_1a=pd.read_csv(r"C:\Users\rapha\Desktop\GrandeDimProjet\scaled_train_1a.csv")
 
 #Non negative matrix for NMF, methods nneg with min
 scaled_train_1a.iloc[:,1:]=scaled_train_1a.iloc[:,1:]+abs(scaled_train_1a.iloc[:,1:].min().min())
@@ -716,5 +711,5 @@ nmf_scaled_train1a=nmf_scaled_train1a[['label',0, 1, 2, 3, 4, 5, 6, 7]]
 nmf_scaled_test1a=nmf_final.transform(scaled_test_1a)
 nmf_scaled_test1a=pd.DataFrame(nmf_scaled_test1a)
 
-nmf_scaled_train1a.to_csv(data_path+r"nmf_scaled_train_1a.csv",index=False)
-nmf_scaled_test1a.to_csv(data_path+r"nmf_scaled_test_1a.csv",index=False)
+nmf_scaled_train1a.to_csv(r"C:\Users\rapha\Desktop\GrandeDimProjet\nmf_scaled_train_1a.csv",index=False)
+nmf_scaled_test1a.to_csv(r"C:\Users\rapha\Desktop\GrandeDimProjet\nmf_scaled_test_1a.csv",index=False)

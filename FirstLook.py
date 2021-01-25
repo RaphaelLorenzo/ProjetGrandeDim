@@ -9,7 +9,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 plt.style.use('seaborn-darkgrid')
-
 train_1a=pd.read_csv(r"C:\Users\rapha\Desktop\GrandeDimProjet\EEG\bsi_competition_ii_train1a.csv")
 
 lin=np.linspace(1,train_1a.shape[1],train_1a.shape[1])

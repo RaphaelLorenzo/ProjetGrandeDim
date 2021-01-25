@@ -31,12 +31,8 @@ plt.style.use('seaborn-darkgrid')
 # traina_scaled = pd.DataFrame(data = traina_scaled)
 # testa_scaled = pd.DataFrame(data = testa_scaled)
 
-project_path=r"C:\\Users\\rapha\\Desktop\\TIDE S1\\ProjetGrandeDIm_Local\\"
-data_path=r"C:\\Users\\rapha\\Desktop\\TIDE S1\\ProjetGrandeDIm_Local\\"
-
-
-traina_scaled=pd.read_csv(project_path+r"scaled_train_1a.csv")
-testa_scaled=pd.read_csv(project_path+r"scaled_test_1a.csv")
+traina_scaled=pd.read_csv(r"C:\Users\rapha\Desktop\ProjetGrandeDIm_Local\scaled_train_1a.csv")
+testa_scaled=pd.read_csv(r"C:\Users\rapha\Desktop\ProjetGrandeDIm_Local\scaled_test_1a.csv")
 y_traina=traina_scaled["0"]
 traina_scaled=traina_scaled.drop("0",axis=1)
 
@@ -120,13 +116,13 @@ testa_arpack= acp_arpack.transform(testa_scaled)
 df_testa_arpack = pd.DataFrame(data = testa_arpack[:,0:9], columns=["Dim"+str(i) for i in range(1,10)])
 
 
-df_traina_arpack.to_csv(data_path+r'acp_train1a.csv', sep = ",", index = False)
+df_traina_arpack.to_csv(r'C:\Users\rapha\Desktop\ProjetGrandeDIm_Local\acp_train1a.csv', sep = ",", index = False)
 
-df_testa_arpack.to_csv(data_path+r'acp_test1a.csv', sep = ",", index = False)
+df_testa_arpack.to_csv(r'C:\Users\rapha\Desktop\ProjetGrandeDIm_Local\acp_test1a.csv', sep = ",", index = False)
 
-acp_traina = pd.read_csv(data_path+r'acp_train1a.csv')
+acp_traina = pd.read_csv(r'C:\Users\rapha\Desktop\ProjetGrandeDIm_Local\acp_train1a.csv')
 
-acp_testa = pd.read_csv(data_path+r'acp_test1a.csv')
+acp_testa = pd.read_csv(r'C:\Users\rapha\Desktop\ProjetGrandeDIm_Local\acp_test1a.csv')
 
 
 

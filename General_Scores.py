@@ -83,7 +83,7 @@ for col in results_pred.columns[1:]:
 dic={"Name":name,"Accuracy":accuracy,"Accuracy Class 0":accuracy_0,"Accuracy Class 1":accuracy_1,"Accuracy Gap 0-1":accuracy_gap_0_1}
 
 stat_results=pd.DataFrame(dic)
-stat_results.to_csv(project_path+"Models_Test_Results_Stats.csv")
+
 
 accurate_df=results_pred.copy()
 
